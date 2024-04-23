@@ -1,0 +1,17 @@
+target extended-remote:3333
+
+printf "Rst TimerL: %u\n",          *0x10429000
+printf "Rst TimerU: %u\n",          *0x10429004
+printf "Rst Cnt Rd: %u\n",          *0x10429008
+printf "Rst Cnt Wr: %u\n",          *0x1042900c
+printf "Rst Lat Rd: %u\n",          *0x10429010
+printf "Rst Lat Wr: %u\n\n",        *0x10429014
+
+printf "TimerL: %u\n",              *0x10428000
+printf "TimerU: %u\n",              *0x10428004
+printf "Cnt Rd: %u\n",              *0x10428008
+printf "Cnt Wr: %u\n",              *0x1042800c
+printf "Lat Rd: %u\n",              *0x10428010
+printf "Lat Wr: %u\n\n",            *0x10428014
+
+printf "Cur Lat: %u\n",             *0x10428014

@@ -1,0 +1,19 @@
+target extended-remote:3333
+handle SIGINT noprint
+
+make clean all
+monitor reset halt
+
+thread 1
+load pmu_case_study.riscv
+
+thread 2
+set $pc = 0x0000000080000000
+
+thread 3
+set $pc = 0x0000000080000000
+
+thread 4
+set $pc = 0x0000000080000000
+
+info threads

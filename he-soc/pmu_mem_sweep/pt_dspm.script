@@ -1,0 +1,15 @@
+target remote:3333
+
+printf "Size in Bytes: %u\n\n",         *0x10426000
+printf "Num LS made: %u\n\n",           *0x10426004
+printf "LD/STR Cycle Count: %u\n\n",    *0x10426008
+printf "D1 miss: %u\n\n",               *0x1042600c
+
+set $var = 0
+set $addr=0x10426010
+
+while (1)
+    printf "%d (%x): %d\n", $var, $addr, (*$addr & 0x7FFFFFFF)
+    set $addr = $addr + 0x4
+    set $var  = $var + 1
+end

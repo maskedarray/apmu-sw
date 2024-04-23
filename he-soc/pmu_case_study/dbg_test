@@ -1,0 +1,21 @@
+set $var = 0
+set $addr=0x10406000
+while ($var < 32)
+    print $var 
+    print *$addr
+    set $addr=$addr+0x1000
+    set $var=$var+1
+end
+
+print "counter done"
+
+set $var = 0
+set $addr=0x10427000
+while ($var < 32)
+    print $addr
+    print *$addr
+    set $addr=$addr+0x4
+    set $var=$var+1
+end
+
+print "dspm done"

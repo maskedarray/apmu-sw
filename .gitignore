@@ -1,0 +1,5 @@
+*.riscv
+*.elf
+*.dump
+*.s
+rv32-benchmarks-ibex/

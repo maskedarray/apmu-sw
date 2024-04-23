@@ -1,0 +1,9 @@
+target extended-remote:3333
+
+set $var = 0
+set $addr=0x10426000
+while (1)
+    printf "%d (%x): %d\n", $var, $addr, (*$addr & 0x7FFFFFFF)
+    set $addr = $addr + 0x4
+    set $var  = $var + 1
+end

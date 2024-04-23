@@ -1,0 +1,34 @@
+target extended-remote:3333
+
+printf "Target AvgLat: %u\n\n", *0x10427080
+
+printf "Start time: %u\n", *0x10427068
+printf "Cycle CSR: %u\n", *0x10427070
+printf "PMU Timer: %u\n\n", *0x10427078
+
+printf "Cnt Rd: %u\n", *0x10428000
+printf "Cnt Wr: %u\n", *0x10428004
+printf "Cur Lat: %u\n", *0x10428008
+printf "Tar Lat: %u\n", *0x10428010
+
+printf "Hal time: %u\n", *0x10428100
+printf "Res time: %u\n", *0x10428200
+printf "Last State: %u\n", *0x10428300
+printf "Last Timestamp: %u\n\n", *0x10428400
+
+printf "RDes: %u\n", *0x10428710
+printf "HDes: %u\n", *0x10428720
+
+printf "HStatus: %u\n", *0x10428730
+printf "CLat <= TLat: %u\n", *0x10428740
+printf "CLat  > TLat: %u\n\n", *0x10428750
+
+printf "RCur Lat: %u\n", *0x10428500
+printf "RTar Lat: %u\n", *0x10428520
+printf "RCur CRd: %u\n", *0x10428540
+printf "RTar CWr: %u\n", *0x10428560
+
+printf "HCur Lat: %u\n", *0x10428600
+printf "HTar Lat: %u\n", *0x10428620
+printf "HCur CRd: %u\n", *0x10428640
+printf "HTar CWr: %u\n", *0x10428660

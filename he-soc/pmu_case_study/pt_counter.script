@@ -1,0 +1,7 @@
+set $var = 0
+set $cnt_addr = 0x10406000
+while ($var < 32)
+    printf "%d: %u (%x)\n", $var, *$cnt_addr & 0x7FFFFFFF, *$cnt_addr
+    set $var = $var+1
+    set $cnt_addr = $cnt_addr + 0x1000
+end

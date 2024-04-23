@@ -1,0 +1,18 @@
+target remote:3333
+
+make clean all
+monitor reset halt
+
+thread 1
+load pmu_mem_sweep.riscv
+
+thread 2
+set $pc = 0x0000000080000000
+
+thread 3
+set $pc = 0x0000000080000000
+
+thread 4
+set $pc = 0x0000000080000000
+
+info threads

@@ -1,0 +1,8 @@
+target remote:3333
+
+printf "Time: %u\n",                  *0x10427100
+printf "Core 0: %u\n",                *0x10427120
+printf "Core 1: %u\n",                *0x10427124
+printf "Core 2: %u\n",                *0x10427128
+printf "Core 3: %u\n\n",              *0x1042712c
+
