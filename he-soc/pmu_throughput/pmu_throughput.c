@@ -11,7 +11,7 @@
 
 // #define WRITE_HIT
 // #define WRITE_MISS
-// #define WRITE_MISS_WB
+#define WRITE_MISS_WB
 
 #define STRIDE     8    // 8 x 8 = 64 bytes
 
@@ -21,6 +21,66 @@
 
 void end_test(uint32_t mhartid){
   printf("Exiting: %0d.\r\n", mhartid);
+}
+
+void setup_counters(){
+      uint32_t num_counter = 8;
+
+    #if defined (READ_HIT) || defined (READ_MISS) || defined (READ_MISS_WB)
+      uint32_t event_sel[] = {LLC_RD_RES_CORE_0,    // 0
+                              LLC_RD_RES_CORE_1,    // 1
+                              LLC_RD_RES_CORE_2,    // 2
+                              LLC_RD_RES_CORE_3,    // 3
+                              LLC_RD_RES_CORE_0,    // 4
+                              LLC_RD_RES_CORE_1,    // 5
+                              LLC_RD_RES_CORE_2,    // 6
+                              LLC_RD_RES_CORE_3};   // 7
+    #elif defined (WRITE_HIT) || defined (WRITE_MISS) || defined (WRITE_MISS_WB)
+      uint32_t event_sel[] = {LLC_WR_RES_CORE_0,    // 0
+                              LLC_WR_RES_CORE_1,    // 1
+                              LLC_WR_RES_CORE_2,    // 2
+                              LLC_WR_RES_CORE_3,    // 3
+                              LLC_WR_RES_CORE_0,    // 4
+                              LLC_WR_RES_CORE_1,    // 5
+                              LLC_WR_RES_CORE_2,    // 6
+                              LLC_WR_RES_CORE_3};   // 7
+    #endif
+
+    uint32_t event_info[] = {CNT_MEM_ONLY,    // 0 
+                             CNT_MEM_ONLY,    // 1
+                             CNT_MEM_ONLY,    // 2
+                             CNT_MEM_ONLY,    // 3
+                             ADD_RESP_LAT,    // 4
+                             ADD_RESP_LAT,    // 5
+                             ADD_RESP_LAT,    // 6
+                             ADD_RESP_LAT};   // 7
+
+    write_32b_regs(EVENT_SEL_BASE_ADDR, num_counter, event_sel, COUNTER_BUNDLE_SIZE);
+    write_32b_regs(EVENT_INFO_BASE_ADDR, num_counter, event_info, COUNTER_BUNDLE_SIZE);    
+}
+
+void partition_cache(){
+    write_32b(0x50 + 0x10401000, 0xFFFFFF00);
+    write_32b(0x54 + 0x10401000, 0xFFFF00FF);
+    write_32b(0x58 + 0x10401000, 0xFF00FFFF);
+    write_32b(0x5c + 0x10401000, 0x00FFFFFF);
+}
+
+void print_init(){
+      printf("************\r\n");
+    #if defined (READ_HIT)
+      printf("READ_HIT case\n.");      
+    #elif defined (READ_MISS)
+      printf("READ_MISS case\n.");
+    #elif defined (READ_MISS_WB)
+      printf("READ_MISS_WB case\n.");
+    #elif defined (WRITE_HIT)
+      printf("WRITE_HIT case\n.");
+    #elif defined (WRITE_MISS)
+      printf("WRITE_MISS case\n.");
+    #elif defined (WRITE_MISS_WB)
+      printf("WRITE_MISS_WB case\n.");
+    #endif
 }
 
 // *********************************************************************
@@ -57,72 +117,22 @@ int main(int argc, char const *argv[]) {
 
 
     // Partition the cache.
-    write_32b(0x50 + 0x10401000, 0xFFFFFF00);
-    write_32b(0x54 + 0x10401000, 0xFFFF00FF);
-    write_32b(0x58 + 0x10401000, 0xFF00FFFF);
-    write_32b(0x5c + 0x10401000, 0x00FFFFFF);
+    partition_cache();
 
-    uint32_t ARRAY_SIZE = 0;
-    printf("************\r\n");
-    #if defined (READ_HIT)
-      printf("READ_HIT case\n.");      
-    #elif defined (READ_MISS)
-      printf("READ_MISS case\n.");
-    #elif defined (READ_MISS_WB)
-      printf("READ_MISS_WB case\n.");
-    #elif defined (WRITE_HIT)
-      printf("WRITE_HIT case\n.");
-    #elif defined (WRITE_MISS)
-      printf("WRITE_MISS case\n.");
-    #elif defined (WRITE_MISS_WB)
-      printf("WRITE_MISS_WB case\n.");
-    #endif
+    print_init();
     
     #if defined (READ_HIT) || defined (WRITE_HIT)
-      ARRAY_SIZE = 61440;     // 480 KB
-      a_len2 = 61440;
+      a_len2 = 61440;       // 480 KB
     #elif defined (READ_MISS) || defined (READ_MISS_WB) || \
           defined (WRITE_MISS) || defined (WRITE_MISS_WB)
-      ARRAY_SIZE = 262144;    // 2MB
-      a_len2 = 262144;
+      a_len2 = 262144;        // 2MB
     #endif
 
     // **************************************************************
     // Set up APMU counters.
     // **************************************************************
-    uint32_t num_counter = 8;
 
-    #if defined (READ_HIT) || defined (READ_MISS) || defined (READ_MISS_WB)
-      uint32_t event_sel[] = {LLC_RD_RES_CORE_0,    // 0
-                              LLC_RD_RES_CORE_1,    // 1
-                              LLC_RD_RES_CORE_2,    // 2
-                              LLC_RD_RES_CORE_3,    // 3
-                              LLC_RD_RES_CORE_0,    // 4
-                              LLC_RD_RES_CORE_1,    // 5
-                              LLC_RD_RES_CORE_2,    // 6
-                              LLC_RD_RES_CORE_3};   // 7
-    #elif defined (WRITE_HIT) || defined (WRITE_MISS) || defined (WRITE_MISS_WB)
-      uint32_t event_sel[] = {LLC_WR_RES_CORE_0,    // 0
-                              LLC_WR_RES_CORE_1,    // 1
-                              LLC_WR_RES_CORE_2,    // 2
-                              LLC_WR_RES_CORE_3,    // 3
-                              LLC_WR_RES_CORE_0,    // 4
-                              LLC_WR_RES_CORE_1,    // 5
-                              LLC_WR_RES_CORE_2,    // 6
-                              LLC_WR_RES_CORE_3};   // 7
-    #endif
-
-    uint32_t event_info[] = {CNT_MEM_ONLY,    // 0 
-                             CNT_MEM_ONLY,    // 1
-                             CNT_MEM_ONLY,    // 2
-                             CNT_MEM_ONLY,    // 3
-                             ADD_RESP_LAT,    // 4
-                             ADD_RESP_LAT,    // 5
-                             ADD_RESP_LAT,    // 6
-                             ADD_RESP_LAT};   // 7
-
-    write_32b_regs(EVENT_SEL_BASE_ADDR, num_counter, event_sel, COUNTER_BUNDLE_SIZE);
-    write_32b_regs(EVENT_INFO_BASE_ADDR, num_counter, event_info, COUNTER_BUNDLE_SIZE);
+  setup_counters();
 
     // **************************************************************
     // Set up APMU core.
@@ -242,7 +252,7 @@ int main(int argc, char const *argv[]) {
     printf("SPMs and counters loaded. (%0d)\r\n", error_count);
     printf("************\r\n");
 
-    #if defined (READ_HIT) || defined (WRITE_HIT) || defined(READ_MISS) || defined (WRITE_MISS)  
+    #if defined (READ_HIT) || defined (WRITE_HIT) || defined(READ_MISS) || defined (WRITE_MISS_WB)  
       for (int a_idx = 0; a_idx < a_len2; a_idx+=STRIDE) {
         #ifdef READ_HIT
           asm volatile (
@@ -258,9 +268,15 @@ int main(int argc, char const *argv[]) {
           );
         #elif defined(READ_MISS)
           asm volatile (
+            "ld   %0, 0(%1)\n"
+            : "=r"(var)
+            : "r"(array - a_idx - 131072)
+          );
+        #elif defined(WRITE_MISS_WB)
+          asm volatile (
             "sd   %0, 0(%1)\n"
             :: "r"(var),
-              "r"(array - a_idx)
+              "r"(array - a_idx - 131072)
           );
         #endif
       }
