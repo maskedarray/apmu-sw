@@ -4,18 +4,20 @@
 #include "utils.h"
 #include "pmu_defines.h"
 #include "pmu_test_func.c"
+#include <inttypes.h>
+
 
 // #define READ_HIT
 // #define READ_MISS
 // #define READ_MISS_WB
 
 // #define WRITE_HIT
-// #define WRITE_MISS
-#define WRITE_MISS_WB
+#define WRITE_MISS
+// #define WRITE_MISS_WB
 
 #define STRIDE     8    // 8 x 8 = 64 bytes
 
-#define DELAY 10000000
+#define DELAY 85500
 
 #define write_32b(addr, val_)  (*(volatile uint32_t *)(long)(addr) = val_)
 
@@ -83,23 +85,31 @@ void print_init(){
     #endif
 }
 
+static inline cpu_barrier_sync();
+void setup_pmu(void);
+static inline traverse_array(volatile uint64_t* array_addr, uint32_t dummy_var, int start_index, int end_index, int reps);
+
 // *********************************************************************
 // Main Function
 // *********************************************************************
 int main(int argc, char const *argv[]) {
+
   uint32_t mhartid;
   asm volatile (
     "csrr %0, 0xF14\n"
     : "=r" (mhartid)
   );
 
-  uint32_t dspm_base_addr;
-  uint32_t read_target;
-  uint32_t error_count = 0;
-
   volatile uint64_t *array = (uint64_t*)(uint64_t)(0x83000000 + mhartid * 0x01000000);
-  uint32_t a_len2 = 61440;
+  uint32_t a_len2;       // 512 KB
   uint32_t var;
+
+  #if defined (READ_HIT) || defined (WRITE_HIT) || defined (READ_MISS_WB) || defined (WRITE_MISS)
+    // a_len2 = 61440;       // 480 KB
+    a_len2 = 65536;       // 512 KB
+  #elif defined (READ_MISS) || defined (WRITE_MISS_WB)
+    a_len2 = 262144;        // 2MB
+  #endif
 
   // *******************************************************************
   // Core 0
@@ -121,23 +131,155 @@ int main(int argc, char const *argv[]) {
 
     print_init();
     
-    #if defined (READ_HIT) || defined (WRITE_HIT)
-      a_len2 = 61440;       // 480 KB
-    #elif defined (READ_MISS) || defined (READ_MISS_WB) || \
-          defined (WRITE_MISS) || defined (WRITE_MISS_WB)
-      a_len2 = 262144;        // 2MB
-    #endif
-
     // **************************************************************
     // Set up APMU counters.
     // **************************************************************
 
-  setup_counters();
+    setup_counters();
 
     // **************************************************************
     // Set up APMU core.
     // **************************************************************
-    uint32_t program[] = {
+
+    setup_pmu();
+
+    printf("************\r\n");
+
+    // **************************************************************
+    // Prime the cache
+    // **************************************************************
+
+    for (int a_idx = 0; a_idx < a_len2; a_idx+=STRIDE) {
+      #if defined (READ_HIT) || defined(READ_MISS) || defined (WRITE_MISS)
+        asm volatile (
+          "ld   %0, 0(%1)\n"
+          : "=r"(var)
+          : "r"(array - a_idx)
+        );
+      #elif defined(WRITE_HIT) || defined(WRITE_MISS_WB) || defined (READ_MISS_WB)
+        asm volatile (
+          "sd   %0, 0(%1)\n"
+          :: "r"(var),
+            "r"(array - a_idx)
+        );
+      #endif
+    }
+
+    
+    cpu_barrier_sync(mhartid);
+
+    // Start the APMU core.
+    #if !defined(READ_MISS_WB) && !defined(WRITE_MISS)
+    write_32b(PMC_STATUS_ADDR, 0);
+    #endif
+    
+    
+    // uint64_t start_cycles;
+    // asm volatile ("rdcycle %0" : "=r"(start_cycles));
+    
+
+    #if defined (READ_MISS_WB) || defined (WRITE_MISS)
+      a_len2 = 65536; 
+      // Now traverse from 512KB to 1024KB and perform:
+      // For READ_MISS_WB perform reads
+      // Fore WRITE_MISS perform write
+      traverse_array(array, var, a_len2, a_len2+21845, 1);  
+      write_32b(PMC_STATUS_ADDR, 0);
+      traverse_array(array, var, a_len2+21845, a_len2+65536, 1);  
+
+    #else
+        traverse_array(array, var, 0, a_len2, 100);
+    #endif
+
+      
+    // uint64_t end_cycles;
+    // asm volatile ("rdcycle %0" : "=r"(end_cycles));
+
+
+    // if(end_cycles - start_cycles >= UINT32_MAX){
+    //   printf("print max\n");
+    // }
+    // printf("Test Ended! Cycles: %u\n", (unsigned long long)end_cycles - start_cycles);
+
+  // *******************************************************************
+  // Core 1-3
+  // *******************************************************************
+  } else {
+ 
+    // **************************************************************
+    // Prime the cache
+    // **************************************************************
+    #if defined (READ_HIT) || defined (WRITE_HIT) || defined (READ_MISS_WB) || defined (WRITE_MISS)
+      for (int a_idx = 0; a_idx < a_len2; a_idx+=STRIDE) {
+        #if defined (READ_HIT) || defined (WRITE_MISS)
+          asm volatile (
+            "ld   %0, 0(%1)\n"
+            : "=r"(var)
+            : "r"(array - a_idx)
+          );
+        #elif defined(WRITE_HIT) || defined (READ_MISS_WB)
+          asm volatile (
+            "sd   %0, 0(%1)\n"
+            :: "r"(var),
+              "r"(array - a_idx)
+          );
+        #endif
+      }
+    #endif
+
+
+    cpu_barrier_sync(mhartid);
+    // printf("mhartid: %d", mhartid);
+
+    while (1) {
+      // traverse_array(array, var, 0, a_len2, 1);
+      #if defined (READ_MISS_WB) || defined (WRITE_MISS)
+        a_len2 = 65536; 
+        // Now traverse from 512KB to 1024KB and perform:
+        // For READ_MISS_WB perform reads
+        // Fore WRITE_MISS perform write
+        traverse_array(array, var, a_len2, a_len2+65536, 1);  
+        // traverse_array(array, var, a_len2+21845, a_len2+65536, 1);  
+
+      #else
+          traverse_array(array, var, 0, a_len2, 100);
+    #endif
+    }
+  }
+
+  end_test(mhartid);
+  printf("Time: %u\n", read_32b((void*)0x10427100));
+  printf("Core 0: %u\n", read_32b((void*)0x10427120));
+  printf("Core 1: %u\n", read_32b((void*)0x10427124));
+  printf("Core 2: %u\n", read_32b((void*)0x10427128));
+  printf("Core 3: %u\n", read_32b((void*)0x1042712C));
+  while(1){}
+  return 0;
+}
+
+static inline traverse_array(volatile uint64_t* array_addr, uint32_t dummy_var, int start_index, int end_index, int reps){
+  for (int j=0; j<reps; j++){
+    for (int a_idx = start_index; a_idx < end_index; a_idx+=STRIDE) {
+      #if defined(READ_HIT) || defined (READ_MISS) || defined (READ_MISS_WB)
+        asm volatile (
+          "ld   %0, 0(%1)\n"
+          : "=r"(dummy_var)
+          : "r"(array_addr - a_idx)
+        );
+      #elif defined(WRITE_HIT) || defined (WRITE_MISS_WB) || defined (WRITE_MISS)
+        asm volatile (
+          "sd   %0, 0(%1)\n"
+          :: "r"(dummy_var),
+            "r"(array_addr - a_idx)
+        );
+      #endif
+    }
+  }
+}
+
+void setup_pmu(void){
+    uint32_t error_count = 0;
+      uint32_t program[] = {
     0x33,
     0x10427137,
     0x104277b7,
@@ -250,103 +392,9 @@ int main(int argc, char const *argv[]) {
     error_count += test_spm(DSPM_BASE_ADDR+0x80, dspm_len, dspm_val);
 
     printf("SPMs and counters loaded. (%0d)\r\n", error_count);
-    printf("************\r\n");
+}
 
-    #if defined (READ_HIT) || defined (WRITE_HIT) || defined(READ_MISS) || defined (WRITE_MISS_WB)  
-      for (int a_idx = 0; a_idx < a_len2; a_idx+=STRIDE) {
-        #ifdef READ_HIT
-          asm volatile (
-            "ld   %0, 0(%1)\n"
-            : "=r"(var)
-            : "r"(array - a_idx)
-          );
-        #elif defined(WRITE_HIT)
-          asm volatile (
-            "sd   %0, 0(%1)\n"
-            :: "r"(var),
-              "r"(array - a_idx)
-          );
-        #elif defined(READ_MISS)
-          asm volatile (
-            "ld   %0, 0(%1)\n"
-            : "=r"(var)
-            : "r"(array - a_idx - 131072)
-          );
-        #elif defined(WRITE_MISS_WB)
-          asm volatile (
-            "sd   %0, 0(%1)\n"
-            :: "r"(var),
-              "r"(array - a_idx - 131072)
-          );
-        #endif
-      }
-    #endif
-
-    write_32b(DSPM_BASE_ADDR+0x2500,1);
-    int barrier = 0;
-    while (1) {
-      barrier = 0;
-      barrier += read_32b(DSPM_BASE_ADDR+0x2500);
-      barrier += read_32b(DSPM_BASE_ADDR+0x2504);
-      barrier += read_32b(DSPM_BASE_ADDR+0x2508);
-      barrier += read_32b(DSPM_BASE_ADDR+0x250c);
-
-      if (barrier == 4) {
-        break;
-      }
-    }
-    // printf("mhartid: %d", mhartid);
-
-    // Start the APMU core.
-    write_32b(PMC_STATUS_ADDR, 0);
-
-    #if defined (READ_HIT)  || defined (WRITE_HIT) || \
-        defined (READ_MISS) || defined (WRITE_MISS_WB)
-      while (1) {
-        for (int a_idx = 0; a_idx < a_len2; a_idx+=STRIDE) {
-          #if defined(READ_HIT) || defined (READ_MISS)
-            asm volatile (
-              "ld   %0, 0(%1)\n"
-              : "=r"(var)
-              : "r"(array - a_idx)
-            );
-          #elif defined(WRITE_HIT) || defined (WRITE_MISS_WB)
-            asm volatile (
-              "sd   %0, 0(%1)\n"
-              :: "r"(var),
-                "r"(array - a_idx)
-            );
-          #endif
-        }
-      }
-    #endif
-
-    
-
-  // *******************************************************************
-  // Core 1-3
-  // *******************************************************************
-  } else {
- 
-    #if defined (READ_HIT) || defined (WRITE_HIT)
-      for (int a_idx = 0; a_idx < a_len2; a_idx+=STRIDE) {
-        #ifdef READ_HIT
-          asm volatile (
-            "ld   %0, 0(%1)\n"
-            : "=r"(var)
-            : "r"(array - a_idx)
-          );
-        #elif defined(WRITE_HIT)
-          asm volatile (
-            "sd   %0, 0(%1)\n"
-            :: "r"(var),
-              "r"(array - a_idx)
-          );
-        #endif
-      }
-    #endif
-
-
+static inline cpu_barrier_sync(int mhartid){
     write_32b(DSPM_BASE_ADDR+0x2500+mhartid*4,1);
     int barrier = 0;
     while (1) {
@@ -360,36 +408,4 @@ int main(int argc, char const *argv[]) {
         break;
       }
     }
-    // printf("mhartid: %d", mhartid);
-
-    #if defined (READ_HIT)  || defined (WRITE_HIT) || \
-        defined (READ_MISS) || defined (WRITE_MISS_WB)
-      while (1) {
-        for (int a_idx = 0; a_idx < a_len2; a_idx+=STRIDE) {
-          #if defined(READ_HIT) || defined (READ_MISS)
-            asm volatile (
-              "ld   %0, 0(%1)\n"
-              : "=r"(var)
-              : "r"(array - a_idx)
-            );
-          #elif defined(WRITE_HIT) || defined (WRITE_MISS_WB)
-            asm volatile (
-              "sd   %0, 0(%1)\n"
-              :: "r"(var),
-                "r"(array - a_idx)
-            );
-          #endif
-        }
-      }
-    #endif
-  }
-
-  end_test(mhartid);
-  printf("Time: %u\n", read_32b((void*)0x10427100));
-  printf("Core 0: %u\n", read_32b((void*)0x10427120));
-  printf("Core 1: %u\n", read_32b((void*)0x10427124));
-  printf("Core 2: %u\n", read_32b((void*)0x10427128));
-  printf("Core 3: %u\n", read_32b((void*)0x1042712C));
-  while(1){}
-  return 0;
 }

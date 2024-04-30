@@ -74,14 +74,14 @@ void throughput_measure() {
     
     // Wait until DELAY cycles have elapsed.
     while (1) {
-        // end_time = read_32b(TIMER_ADDR);
-        // if ((end_time - start_time) > DELAY) {
-        //     break;
-        // }
-        int unsigned done = read_32b(DSPM_BASE_ADDR+0x2510);
-        if (done){
+        end_time = read_32b(TIMER_ADDR);
+        if ((end_time - start_time) > DELAY) {
             break;
         }
+        // int unsigned done = read_32b(DSPM_BASE_ADDR+0x2510);
+        // if (done){
+        //     break;
+        // }
     }
     
     // Read final value of counter.
