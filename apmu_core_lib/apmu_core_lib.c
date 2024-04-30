@@ -149,7 +149,7 @@ void mempol() {
     // Used to loop over cores.
     int unsigned core_idx = 0;
     // Read and write requests from counters.
-    volatile int unsigned cnt_n_read,  cnt_n_write;
+    volatile int unsigned cnt_n_read,  cnt_n_write, cnt_n_mem_read,  cnt_n_mem_write;
 
     // 0x1080: Ai_Budget
     volatile int *init = (int*)(DSPM_BASE_ADDR + 0x1080);
@@ -163,6 +163,12 @@ void mempol() {
     // 0x108c: WeightWrite
     init = (int*)(DSPM_BASE_ADDR + 0x108c);
     int unsigned weight_w = *init;
+    // 0x1088: WeightRead
+    init = (int*)(DSPM_BASE_ADDR + 0x1090);
+    int unsigned weight_r_mem = *init;
+    // 0x108c: WeightWrite
+    init = (int*)(DSPM_BASE_ADDR + 0x1094);
+    int unsigned weight_w_mem = *init;
 
     
     int unsigned i          = 0;
@@ -209,6 +215,16 @@ void mempol() {
         counter_idx = 1;
         counter_read(cnt_n_write, counter_idx);
         cnt_n_write = cnt_n_write & 0x7FFFFFFF;
+
+        // C8 -- Mem Read
+        counter_idx = 8;
+        counter_read(cnt_n_mem_read, counter_idx);
+        cnt_n_mem_read = cnt_n_mem_read & 0x7FFFFFFF;
+
+        // C9 -- Mem Write
+        counter_idx = 9;
+        counter_read(cnt_n_mem_write, counter_idx);
+        cnt_n_mem_write = cnt_n_mem_write & 0x7FFFFFFF;
         
         // Derive set point.
         if (t_lrt_0 < window_size) {
@@ -218,7 +234,10 @@ void mempol() {
             spv_0 = history_0[i] + (window_size * ai_budget);
         }
 
-        val = weight_r * cnt_n_read + weight_w * cnt_n_write;
+        // TODO 
+        // val = weight_r * cnt_n_read + weight_w * cnt_n_write;
+        val = weight_r * cnt_n_read + weight_w * cnt_n_write + \
+              weight_r_mem * cnt_n_mem_read + weight_w_mem * cnt_n_mem_write;
 
         // Over-budget.
         if ((spv_0 - val) < 0) {
@@ -254,6 +273,16 @@ void mempol() {
         counter_idx = 3;
         counter_read(cnt_n_write, counter_idx);
         cnt_n_write = cnt_n_write & 0x7FFFFFFF;
+
+        // C10
+        counter_idx = 10;
+        counter_read(cnt_n_mem_read, counter_idx);
+        cnt_n_mem_read = cnt_n_mem_read & 0x7FFFFFFF;
+
+        // C11
+        counter_idx = 11;
+        counter_read(cnt_n_mem_write, counter_idx);
+        cnt_n_mem_write = cnt_n_mem_write & 0x7FFFFFFF;
         
         // Derive set point.
         if (t_lrt_1 < window_size) {
@@ -263,7 +292,10 @@ void mempol() {
             spv_1 = history_1[i] + (window_size * ai_budget);
         }
 
-        val = weight_r * cnt_n_read + weight_w * cnt_n_write;
+        // TODO 
+        // val = weight_r * cnt_n_read + weight_w * cnt_n_write;
+        val = weight_r * cnt_n_read + weight_w * cnt_n_write + \
+              weight_r_mem * cnt_n_mem_read + weight_w_mem * cnt_n_mem_write;
         
         // Over-budget.
         if ((spv_1 - val) < 0) {
@@ -299,6 +331,16 @@ void mempol() {
         counter_idx = 5;
         counter_read(cnt_n_write, counter_idx);
         cnt_n_write = cnt_n_write & 0x7FFFFFFF;
+
+        // C12
+        counter_idx = 12;
+        counter_read(cnt_n_mem_read, counter_idx);
+        cnt_n_mem_read = cnt_n_mem_read & 0x7FFFFFFF;
+
+        // C13
+        counter_idx = 13;
+        counter_read(cnt_n_mem_write, counter_idx);
+        cnt_n_mem_write = cnt_n_mem_write & 0x7FFFFFFF;
         
         // Derive set point.
         if (t_lrt_2 < window_size) {
@@ -308,7 +350,10 @@ void mempol() {
             spv_2 = history_2[i] + (window_size * ai_budget);
         }
 
-        val = weight_r * cnt_n_read + weight_w * cnt_n_write;
+        // TODO 
+        // val = weight_r * cnt_n_read + weight_w * cnt_n_write;
+        val = weight_r * cnt_n_read + weight_w * cnt_n_write + \
+              weight_r_mem * cnt_n_mem_read + weight_w_mem * cnt_n_mem_write;
         
         // Over-budget.
         if ((spv_2 - val) < 0) {
@@ -344,6 +389,16 @@ void mempol() {
         counter_idx = 7;
         counter_read(cnt_n_write, counter_idx);
         cnt_n_write = cnt_n_write & 0x7FFFFFFF;
+
+         // C14
+        counter_idx = 14;
+        counter_read(cnt_n_mem_read, counter_idx);
+        cnt_n_mem_read = cnt_n_mem_read & 0x7FFFFFFF;
+
+        // C15
+        counter_idx = 15;
+        counter_read(cnt_n_mem_write, counter_idx);
+        cnt_n_mem_write = cnt_n_mem_write & 0x7FFFFFFF;
         
         // Derive set point.
         if (t_lrt_3 < window_size) {
@@ -353,7 +408,10 @@ void mempol() {
             spv_3 = history_3[i] + (window_size * ai_budget);
         }
 
-        val = weight_r * cnt_n_read + weight_w * cnt_n_write;
+        // TODO 
+        // val = weight_r * cnt_n_read + weight_w * cnt_n_write;
+        val = weight_r * cnt_n_read + weight_w * cnt_n_write + \
+              weight_r_mem * cnt_n_mem_read + weight_w_mem * cnt_n_mem_write;
         
         // Over-budget.
         if ((spv_3 - val) < 0) {
@@ -386,7 +444,7 @@ void mempol() {
             }
         }
     }
- 
+    while(1) {}
 }
 
 
