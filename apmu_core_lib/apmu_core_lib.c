@@ -174,16 +174,17 @@ void mempol() {
     int unsigned i          = 0;
     int unsigned i_temp     = 0;
     int unsigned val        = 0;
+    int delta;
     
     volatile int unsigned history_0[10];
     volatile int unsigned history_1[10];
     volatile int unsigned history_2[10];
     volatile int unsigned history_3[10];
 
-    int unsigned t_lrt_0    = window_size;
-    int unsigned t_lrt_1    = window_size;
-    int unsigned t_lrt_2    = window_size;
-    int unsigned t_lrt_3    = window_size;
+    int unsigned t_lrt_0    = window_size + 1;
+    int unsigned t_lrt_1    = window_size + 1;
+    int unsigned t_lrt_2    = window_size + 1;
+    int unsigned t_lrt_3    = window_size + 1;
 
     int unsigned spv_0      = 0;
     int unsigned spv_1      = 0;
@@ -227,7 +228,7 @@ void mempol() {
         cnt_n_mem_write = cnt_n_mem_write & 0x7FFFFFFF;
         
         // Derive set point.
-        if (t_lrt_0 < window_size) {
+        if (t_lrt_0 < window_size + 1) {
             spv_0     = spv_lrt_0 + t_lrt_0 * ai_budget;
             t_lrt_0   += 1;
         } else {
@@ -239,10 +240,11 @@ void mempol() {
         val = weight_r * cnt_n_read + weight_w * cnt_n_write + \
               weight_r_mem * cnt_n_mem_read + weight_w_mem * cnt_n_mem_write;
 
+        delta = spv_0 - val;
         // Over-budget.
-        if ((spv_0 - val) < 0) {
+        if (delta < 0) {
             history_0[i] = spv_0;
-            t_lrt_0      = 0;
+            t_lrt_0      = 1;
             spv_lrt_0    = spv_0;
             // Halt core if resumed.
             if (halt_status_0 == RESUME) {
@@ -285,7 +287,7 @@ void mempol() {
         cnt_n_mem_write = cnt_n_mem_write & 0x7FFFFFFF;
         
         // Derive set point.
-        if (t_lrt_1 < window_size) {
+        if (t_lrt_1 < window_size + 1) {
             spv_1     = spv_lrt_1 + t_lrt_1 * ai_budget;
             t_lrt_1   += 1;
         } else {
@@ -297,10 +299,11 @@ void mempol() {
         val = weight_r * cnt_n_read + weight_w * cnt_n_write + \
               weight_r_mem * cnt_n_mem_read + weight_w_mem * cnt_n_mem_write;
         
+        delta = spv_1 - val;
         // Over-budget.
-        if ((spv_1 - val) < 0) {
+        if (delta < 0) {
             history_1[i] = spv_1;
-            t_lrt_1      = 0;
+            t_lrt_1      = 1;
             spv_lrt_1    = spv_1;
             // Halt core if resumed.
             if (halt_status_1 == RESUME) {
@@ -343,7 +346,7 @@ void mempol() {
         cnt_n_mem_write = cnt_n_mem_write & 0x7FFFFFFF;
         
         // Derive set point.
-        if (t_lrt_2 < window_size) {
+        if (t_lrt_2 < window_size + 1) {
             spv_2     = spv_lrt_2 + t_lrt_2 * ai_budget;
             t_lrt_2   += 1;
         } else {
@@ -355,10 +358,11 @@ void mempol() {
         val = weight_r * cnt_n_read + weight_w * cnt_n_write + \
               weight_r_mem * cnt_n_mem_read + weight_w_mem * cnt_n_mem_write;
         
+        delta = spv_2 - val;
         // Over-budget.
-        if ((spv_2 - val) < 0) {
+        if (delta < 0) {
             history_2[i] = spv_2;
-            t_lrt_2      = 0;
+            t_lrt_2      = 1;
             spv_lrt_2    = spv_2;
             // Halt core if resumed.
             if (halt_status_2 == RESUME) {
@@ -401,7 +405,7 @@ void mempol() {
         cnt_n_mem_write = cnt_n_mem_write & 0x7FFFFFFF;
         
         // Derive set point.
-        if (t_lrt_3 < window_size) {
+        if (t_lrt_3 < window_size + 1) {
             spv_3     = spv_lrt_3 + t_lrt_3 * ai_budget;
             t_lrt_3   += 1;
         } else {
@@ -413,10 +417,11 @@ void mempol() {
         val = weight_r * cnt_n_read + weight_w * cnt_n_write + \
               weight_r_mem * cnt_n_mem_read + weight_w_mem * cnt_n_mem_write;
         
+        delta = spv_3 - val;
         // Over-budget.
-        if ((spv_3 - val) < 0) {
+        if (delta < 0) {
             history_3[i] = spv_3;
-            t_lrt_3      = 0;
+            t_lrt_3      = 1;
             spv_lrt_3    = spv_3;
             // Halt core if resumed.
             if (halt_status_3 == RESUME) {
