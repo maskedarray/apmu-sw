@@ -151,8 +151,11 @@ void mempol() {
     // Read and write requests from counters.
     volatile int unsigned cnt_n_read,  cnt_n_write, cnt_n_mem_read,  cnt_n_mem_write;
 
+    volatile int *init = (int*)(DSPM_BASE_ADDR + 0x1098);
+    int unsigned DELAY = *init;
+
     // 0x1080: Ai_Budget
-    volatile int *init = (int*)(DSPM_BASE_ADDR + 0x1080);
+    init = (int*)(DSPM_BASE_ADDR + 0x1080);
     int unsigned ai_budget = *init;
     // 0x1084: WindowSize
     init = (int*)(DSPM_BASE_ADDR + 0x1084);
@@ -163,10 +166,10 @@ void mempol() {
     // 0x108c: WeightWrite
     init = (int*)(DSPM_BASE_ADDR + 0x108c);
     int unsigned weight_w = *init;
-    // 0x1088: WeightRead
+    // 0x1090: WeightRead
     init = (int*)(DSPM_BASE_ADDR + 0x1090);
     int unsigned weight_r_mem = *init;
-    // 0x108c: WeightWrite
+    // 0x1094: WeightWrite
     init = (int*)(DSPM_BASE_ADDR + 0x1094);
     int unsigned weight_w_mem = *init;
 
@@ -176,10 +179,10 @@ void mempol() {
     int unsigned val        = 0;
     int delta;
     
-    volatile int unsigned history_0[10];
-    volatile int unsigned history_1[10];
-    volatile int unsigned history_2[10];
-    volatile int unsigned history_3[10];
+    volatile int unsigned history_0[10] = {0};
+    volatile int unsigned history_1[10] = {0};
+    volatile int unsigned history_2[10] = {0};
+    volatile int unsigned history_3[10] = {0};
 
     int unsigned t_lrt_0    = window_size + 1;
     int unsigned t_lrt_1    = window_size + 1;
@@ -202,7 +205,13 @@ void mempol() {
     int unsigned halt_status_2 = RESUME;
     int unsigned halt_status_3 = RESUME;
 
+    int unsigned start_time;
+    int unsigned end_time;
+
+    init = (int*)(DSPM_BASE_ADDR + 0x10A0);
+    *init = 56;
     while (1) {
+        start_time = read_32b(TIMER_ADDR);
         // ************************************
         // Core 0.
         // ************************************
@@ -448,6 +457,18 @@ void mempol() {
                 i = i - window_size;
             }
         }
+        init = (int*)(DSPM_BASE_ADDR + 0x10A4);
+        *init = 0x39;
+        end_time = read_32b(TIMER_ADDR);
+        int time_diff = end_time - start_time;
+        while (time_diff < DELAY){
+            end_time = read_32b(TIMER_ADDR);
+            time_diff = end_time - start_time;
+            init = (int*)(DSPM_BASE_ADDR + 0x10Ac);
+            *init = end_time;
+        }
+        init = (int*)(DSPM_BASE_ADDR + 0x10Ac);
+        *init = 0x40;
     }
     while(1) {}
 }
