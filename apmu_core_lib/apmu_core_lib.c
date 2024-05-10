@@ -211,8 +211,8 @@ void mempol() {
     int unsigned counter = 0;
     int unsigned counter_halt = 0;
 
-    init = (int*)(DSPM_BASE_ADDR + 0x10A0);
-    *init = 0x11;
+    write_32b(DSPM_BASE_ADDR + 0x10A0, 0x11);
+
     while (1) {
         start_time = read_32b(TIMER_ADDR);
         // ************************************
@@ -276,182 +276,6 @@ void mempol() {
             }
         }
 
-        // ************************************
-        // Core 1.
-        // ************************************
-        // Read necessary PMU counters.
-        // C2
-        counter_idx = 2;
-        counter_read(cnt_n_read, counter_idx);
-        cnt_n_read = cnt_n_read & 0x7FFFFFFF;
-
-        // C3
-        counter_idx = 3;
-        counter_read(cnt_n_write, counter_idx);
-        cnt_n_write = cnt_n_write & 0x7FFFFFFF;
-
-        // C10
-        counter_idx = 10;
-        counter_read(cnt_n_mem_read, counter_idx);
-        cnt_n_mem_read = cnt_n_mem_read & 0x7FFFFFFF;
-
-        // C11
-        counter_idx = 11;
-        counter_read(cnt_n_mem_write, counter_idx);
-        cnt_n_mem_write = cnt_n_mem_write & 0x7FFFFFFF;
-        
-        // Derive set point.
-        if (t_lrt_1 < window_size + 1) {
-            spv_1     = spv_lrt_1 + t_lrt_1 * ai_budget;
-            t_lrt_1   += 1;
-        } else {
-            spv_1 = history_1[i] + (window_size * ai_budget);
-        }
-
-        // TODO 
-        // val = weight_r * cnt_n_read + weight_w * cnt_n_write;
-        val = weight_r * cnt_n_read + weight_w * cnt_n_write + \
-              weight_r_mem * cnt_n_mem_read + weight_w_mem * cnt_n_mem_write;
-        
-        delta = spv_1 - val;
-        // Over-budget.
-        if (delta < 0) {
-            history_1[i] = spv_1;
-            t_lrt_1      = 1;
-            spv_lrt_1    = spv_1;
-            // Halt core if resumed.
-            if (halt_status_1 == RESUME) {
-                core_idx = 1;
-                write_32b(DEBUG_HALT, core_idx);
-                halt_status_1 = HALT;
-            }
-        } else {
-            history_1[i] = val;
-            // Resume core if halted.
-            if (halt_status_1 == HALT) {
-                core_idx = 1;
-                write_32b(DEBUG_RESUME, core_idx); 
-                halt_status_1 = RESUME;
-            }
-        }
-
-        // ************************************
-        // Core 2.
-        // ************************************
-        // Read necessary PMU counters.
-        // C4
-        counter_idx = 4;
-        counter_read(cnt_n_read, counter_idx);
-        cnt_n_read = cnt_n_read & 0x7FFFFFFF;
-
-        // C5
-        counter_idx = 5;
-        counter_read(cnt_n_write, counter_idx);
-        cnt_n_write = cnt_n_write & 0x7FFFFFFF;
-
-        // C12
-        counter_idx = 12;
-        counter_read(cnt_n_mem_read, counter_idx);
-        cnt_n_mem_read = cnt_n_mem_read & 0x7FFFFFFF;
-
-        // C13
-        counter_idx = 13;
-        counter_read(cnt_n_mem_write, counter_idx);
-        cnt_n_mem_write = cnt_n_mem_write & 0x7FFFFFFF;
-        
-        // Derive set point.
-        if (t_lrt_2 < window_size + 1) {
-            spv_2     = spv_lrt_2 + t_lrt_2 * ai_budget;
-            t_lrt_2   += 1;
-        } else {
-            spv_2 = history_2[i] + (window_size * ai_budget);
-        }
-
-        // TODO 
-        // val = weight_r * cnt_n_read + weight_w * cnt_n_write;
-        val = weight_r * cnt_n_read + weight_w * cnt_n_write + \
-              weight_r_mem * cnt_n_mem_read + weight_w_mem * cnt_n_mem_write;
-        
-        delta = spv_2 - val;
-        // Over-budget.
-        if (delta < 0) {
-            history_2[i] = spv_2;
-            t_lrt_2      = 1;
-            spv_lrt_2    = spv_2;
-            // Halt core if resumed.
-            if (halt_status_2 == RESUME) {
-                core_idx = 2;
-                write_32b(DEBUG_HALT, core_idx);
-                halt_status_2 = HALT;
-            }
-        } else {
-            history_2[i] = val;
-            // Resume core if halted.
-            if (halt_status_2 == HALT) {
-                core_idx = 2;
-                write_32b(DEBUG_RESUME, core_idx); 
-                halt_status_2 = RESUME;
-            }
-        }
-
-        // ************************************
-        // Core 3.
-        // ************************************
-        // Read necessary PMU counters.
-        // C6
-        counter_idx = 6;
-        counter_read(cnt_n_read, counter_idx);
-        cnt_n_read = cnt_n_read & 0x7FFFFFFF;
-
-        // C7
-        counter_idx = 7;
-        counter_read(cnt_n_write, counter_idx);
-        cnt_n_write = cnt_n_write & 0x7FFFFFFF;
-
-         // C14
-        counter_idx = 14;
-        counter_read(cnt_n_mem_read, counter_idx);
-        cnt_n_mem_read = cnt_n_mem_read & 0x7FFFFFFF;
-
-        // C15
-        counter_idx = 15;
-        counter_read(cnt_n_mem_write, counter_idx);
-        cnt_n_mem_write = cnt_n_mem_write & 0x7FFFFFFF;
-        
-        // Derive set point.
-        if (t_lrt_3 < window_size + 1) {
-            spv_3     = spv_lrt_3 + t_lrt_3 * ai_budget;
-            t_lrt_3   += 1;
-        } else {
-            spv_3 = history_3[i] + (window_size * ai_budget);
-        }
-
-        // TODO 
-        // val = weight_r * cnt_n_read + weight_w * cnt_n_write;
-        val = weight_r * cnt_n_read + weight_w * cnt_n_write + \
-              weight_r_mem * cnt_n_mem_read + weight_w_mem * cnt_n_mem_write;
-        
-        delta = spv_3 - val;
-        // Over-budget.
-        if (delta < 0) {
-            history_3[i] = spv_3;
-            t_lrt_3      = 1;
-            spv_lrt_3    = spv_3;
-            // Halt core if resumed.
-            if (halt_status_3 == RESUME) {
-                core_idx = 3;
-                write_32b(DEBUG_HALT, core_idx);
-                halt_status_3 = HALT;
-            }
-        } else {
-            history_3[i] = val;
-            // Resume core if halted.
-            if (halt_status_3 == HALT) {
-                core_idx = 3;
-                write_32b(DEBUG_RESUME, core_idx); 
-                halt_status_3 = RESUME;
-            }
-        }
 
         i = (i+1) % window_size;
 
@@ -478,14 +302,14 @@ void mempol() {
         
 
         init = (int*)(DSPM_BASE_ADDR + 0x10AC);
-        if(*init == 0xf0f0){
+        if(*init == 0x99){
             break;
         }
     }
     while(1) {
         init = (int*)(DSPM_BASE_ADDR + 0x10C0);
         if(*init != 0x55){
-            *init = 0x55;
+            write_32b(DSPM_BASE_ADDR + 0x10C0, 0x55);
         }
         asm volatile ("j 0 ");
     }
