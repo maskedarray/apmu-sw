@@ -208,8 +208,11 @@ void mempol() {
     int unsigned start_time;
     int unsigned end_time;
 
+    int unsigned counter = 0;
+    int unsigned counter_halt = 0;
+
     init = (int*)(DSPM_BASE_ADDR + 0x10A0);
-    *init = 56;
+    *init = 0x11;
     while (1) {
         start_time = read_32b(TIMER_ADDR);
         // ************************************
@@ -248,7 +251,8 @@ void mempol() {
         // val = weight_r * cnt_n_read + weight_w * cnt_n_write;
         val = weight_r * cnt_n_read + weight_w * cnt_n_write + \
               weight_r_mem * cnt_n_mem_read + weight_w_mem * cnt_n_mem_write;
-
+        init = (int*)(DSPM_BASE_ADDR + 0x10B4);
+        *init = val;
         delta = spv_0 - val;
         // Over-budget.
         if (delta < 0) {
@@ -260,6 +264,7 @@ void mempol() {
                 core_idx = 0;
                 write_32b(DEBUG_HALT, core_idx);
                 halt_status_0 = HALT;
+                counter_halt++;
             }
         } else {
             history_0[i] = val;
@@ -448,29 +453,42 @@ void mempol() {
             }
         }
 
-        // i = (i+1) % window_size;
+        i = (i+1) % window_size;
 
-        i = i+1;
-        if(i >= window_size){
-            i = i - window_size;
-            while (i >= window_size) {
-                i = i - window_size;
-            }
-        }
-        init = (int*)(DSPM_BASE_ADDR + 0x10A4);
-        *init = 0x39;
+        int unsigned time_diff;
         end_time = read_32b(TIMER_ADDR);
-        int time_diff = end_time - start_time;
+        if(end_time < start_time){
+            time_diff = (__UINT32_MAX__ - start_time) + end_time;
+        } else {
+            time_diff = end_time - start_time;
+        }
         while (time_diff < DELAY){
             end_time = read_32b(TIMER_ADDR);
-            time_diff = end_time - start_time;
-            init = (int*)(DSPM_BASE_ADDR + 0x10Ac);
-            *init = end_time;
+            if(end_time < start_time){
+                time_diff = (__UINT32_MAX__ - start_time) + end_time;
+            } else {
+                time_diff = end_time - start_time;
+            }
         }
-        init = (int*)(DSPM_BASE_ADDR + 0x10Ac);
-        *init = 0x40;
+        counter++;
+        init = (int*)(DSPM_BASE_ADDR + 0x10A4);
+        *init = counter;
+        init = (int*)(DSPM_BASE_ADDR + 0x10B0);
+        *init = spv_0;
+        
+
+        init = (int*)(DSPM_BASE_ADDR + 0x10AC);
+        if(*init == 0xf0f0){
+            break;
+        }
     }
-    while(1) {}
+    while(1) {
+        init = (int*)(DSPM_BASE_ADDR + 0x10C0);
+        if(*init != 0x55){
+            *init = 0x55;
+        }
+        asm volatile ("j 0 ");
+    }
 }
 
 

@@ -1,5 +1,5 @@
 shell make clean all
-target remote:3333
+target extended-remote:3333
 set pagination off
 
 make clean all
@@ -18,4 +18,7 @@ thread 4
 set $pc = 0x0000000080000000
 
 info threads
-c
+handle SIGINT nostop noprint
+continue &
+shell sleep 4
+handle SIGINT stop print

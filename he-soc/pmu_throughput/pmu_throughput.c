@@ -8,16 +8,16 @@
 
 
 // #define READ_HIT
-// #define READ_MISS
+#define READ_MISS
 // #define READ_MISS_WB
 
 // #define WRITE_HIT
-#define WRITE_MISS
+// #define WRITE_MISS
 // #define WRITE_MISS_WB
 
 #define STRIDE     8    // 8 x 8 = 64 bytes
 
-#define DELAY 85500
+#define DELAY 1000  // actual computed is 432
 
 #define write_32b(addr, val_)  (*(volatile uint32_t *)(long)(addr) = val_)
 
@@ -26,36 +26,42 @@ void end_test(uint32_t mhartid){
 }
 
 void setup_counters(){
-      uint32_t num_counter = 8;
+      uint32_t num_counter = 16;
 
-    #if defined (READ_HIT) || defined (READ_MISS) || defined (READ_MISS_WB)
       uint32_t event_sel[] = {LLC_RD_RES_CORE_0,    // 0
+                              LLC_WR_RES_CORE_0,
                               LLC_RD_RES_CORE_1,    // 1
+                              LLC_WR_RES_CORE_1,
                               LLC_RD_RES_CORE_2,    // 2
+                              LLC_WR_RES_CORE_2,
                               LLC_RD_RES_CORE_3,    // 3
-                              LLC_RD_RES_CORE_0,    // 4
-                              LLC_RD_RES_CORE_1,    // 5
-                              LLC_RD_RES_CORE_2,    // 6
-                              LLC_RD_RES_CORE_3};   // 7
-    #elif defined (WRITE_HIT) || defined (WRITE_MISS) || defined (WRITE_MISS_WB)
-      uint32_t event_sel[] = {LLC_WR_RES_CORE_0,    // 0
-                              LLC_WR_RES_CORE_1,    // 1
-                              LLC_WR_RES_CORE_2,    // 2
-                              LLC_WR_RES_CORE_3,    // 3
-                              LLC_WR_RES_CORE_0,    // 4
-                              LLC_WR_RES_CORE_1,    // 5
-                              LLC_WR_RES_CORE_2,    // 6
-                              LLC_WR_RES_CORE_3};   // 7
-    #endif
+                              LLC_WR_RES_CORE_3,
+                              MEM_RD_RES_CORE_0,    // 0
+                              MEM_WR_RES_CORE_0,
+                              MEM_RD_RES_CORE_1,    // 1
+                              MEM_WR_RES_CORE_1,
+                              MEM_RD_RES_CORE_2,    // 2
+                              MEM_WR_RES_CORE_2,
+                              MEM_RD_RES_CORE_3,    // 3
+                              MEM_WR_RES_CORE_3};   
 
+    // TODO: change everything to cnt mem only
     uint32_t event_info[] = {CNT_MEM_ONLY,    // 0 
                              CNT_MEM_ONLY,    // 1
                              CNT_MEM_ONLY,    // 2
                              CNT_MEM_ONLY,    // 3
-                             ADD_RESP_LAT,    // 4
-                             ADD_RESP_LAT,    // 5
-                             ADD_RESP_LAT,    // 6
-                             ADD_RESP_LAT};   // 7
+                             CNT_MEM_ONLY,    // 4
+                             CNT_MEM_ONLY,    // 5
+                             CNT_MEM_ONLY,    // 6
+                             CNT_MEM_ONLY,    // 7
+                             CNT_MEM_ONLY,    // 0 
+                             CNT_MEM_ONLY,    // 1
+                             CNT_MEM_ONLY,    // 2
+                             CNT_MEM_ONLY,    // 3
+                             CNT_MEM_ONLY,    // 4
+                             CNT_MEM_ONLY,    // 5
+                             CNT_MEM_ONLY,    // 6
+                             CNT_MEM_ONLY};   // 7
 
     write_32b_regs(EVENT_SEL_BASE_ADDR, num_counter, event_sel, COUNTER_BUNDLE_SIZE);
     write_32b_regs(EVENT_INFO_BASE_ADDR, num_counter, event_info, COUNTER_BUNDLE_SIZE);    
@@ -112,6 +118,20 @@ int main(int argc, char const *argv[]) {
   #endif
 
   // *******************************************************************
+  // Delay to close openocd
+  // *******************************************************************
+  {
+    int start_delay = 0;
+    asm volatile ("rdcycle %0" : "=r"(start_delay));
+    int end_delay = 0;
+    asm volatile ("rdcycle %0" : "=r"(end_delay));
+    while(end_delay - start_delay < 500000000){
+      asm volatile ("rdcycle %0" : "=r"(end_delay));
+    }
+  }
+  
+
+  // *******************************************************************
   // Core 0
   // *******************************************************************
   if (mhartid == 0) {   
@@ -165,17 +185,17 @@ int main(int argc, char const *argv[]) {
       #endif
     }
 
-    
+    printf("starting pmu\n");
     cpu_barrier_sync(mhartid);
-
+    
     // Start the APMU core.
     #if !defined(READ_MISS_WB) && !defined(WRITE_MISS)
     write_32b(PMC_STATUS_ADDR, 0);
     #endif
+    printf("pmu started\n");
     
-    
-    // uint64_t start_cycles;
-    // asm volatile ("rdcycle %0" : "=r"(start_cycles));
+    uint64_t start_cycles;
+    asm volatile ("rdcycle %0" : "=r"(start_cycles));
     
 
     #if defined (READ_MISS_WB) || defined (WRITE_MISS)
@@ -192,20 +212,20 @@ int main(int argc, char const *argv[]) {
     #endif
 
       
-    // uint64_t end_cycles;
-    // asm volatile ("rdcycle %0" : "=r"(end_cycles));
+    uint64_t end_cycles;
+    asm volatile ("rdcycle %0" : "=r"(end_cycles));
 
-
-    // if(end_cycles - start_cycles >= UINT32_MAX){
-    //   printf("print max\n");
-    // }
-    // printf("Test Ended! Cycles: %u\n", (unsigned long long)end_cycles - start_cycles);
+    test_spm(DSPM_BASE_ADDR + 0x10AC, sizeof(int), 0x0000f0f0);  //PMU end
+    if(end_cycles - start_cycles >= UINT32_MAX){
+      printf("print max\n");
+    }
+    printf("Test Ended! Cycles: %u\n", (unsigned long long)end_cycles - start_cycles);
 
   // *******************************************************************
   // Core 1-3
   // *******************************************************************
   } else {
- 
+    
     // **************************************************************
     // Prime the cache
     // **************************************************************
@@ -242,17 +262,37 @@ int main(int argc, char const *argv[]) {
         // traverse_array(array, var, a_len2+21845, a_len2+65536, 1);  
 
       #else
-          traverse_array(array, var, 0, a_len2, 100);
+          // traverse_array(array, var, 0, a_len2, 1000);
     #endif
     }
+    while(1){}
   }
 
   end_test(mhartid);
-  printf("Time: %u\n", read_32b((void*)0x10427100));
-  printf("Core 0: %u\n", read_32b((void*)0x10427120));
-  printf("Core 1: %u\n", read_32b((void*)0x10427124));
-  printf("Core 2: %u\n", read_32b((void*)0x10427128));
-  printf("Core 3: %u\n", read_32b((void*)0x1042712C));
+    {
+    int start_delay = 0;
+    asm volatile ("rdcycle %0" : "=r"(start_delay));
+    int end_delay = 0;
+    asm volatile ("rdcycle %0" : "=r"(end_delay));
+    while(end_delay - start_delay < 100000000){
+      asm volatile ("rdcycle %0" : "=r"(end_delay));
+    }
+  }
+  printf("PMU Start(0x11): %x\n",         read_32b((void*)0x104280A0));
+  printf("PMU End Sent(0xf0f0): %x\n",    read_32b((void*)0x104280AC));
+  printf("PMU End Received(0x55): %x\n",  read_32b((void*)0x104280C0));
+  printf("PMU Loop Counts: %x\n",         read_32b((void*)0x104280A4));
+  printf("PMU SPV_0: %x\n",               read_32b((void*)0x104280B0));
+  printf("PMU val_0: %x\n",               read_32b((void*)0x104280B4));
+  printf("PMU RD RES0: %x\n",             read_32b((void*)0x10406000));
+  printf("PMU RD RES1: %x\n",             read_32b((void*)0x10408000));
+  printf("PMU RD RES2: %x\n",             read_32b((void*)0x1040A000));
+  printf("PMU RD RES3: %x\n",             read_32b((void*)0x1040C000));
+
+  // printf("Core 0: %u\n", read_32b((void*)0x10427120));
+  // printf("Core 1: %u\n", read_32b((void*)0x10427124));
+  // printf("Core 2: %u\n", read_32b((void*)0x10427128));
+  // printf("Core 3: %u\n", read_32b((void*)0x1042712C));
   while(1){}
   return 0;
 }
@@ -281,175 +321,384 @@ void setup_pmu(void){
     uint32_t error_count = 0;
       uint32_t program[] = {
     0x33,
-    0x10427137,
-    0x104287b7,
-    0x807a703,
-    0xc13,
-    0x80000737,
-    0x847a603,
-    0xfff74713,
-    0x887a303,
-    0x100b93,
-    0x8c7a883,
-    0x800b13,
-    0x907a803,
-    0x900a93,
-    0x947a503,
-    0x200a13,
-    0x793,
-    0x300993,
-    0xa00913,
-    0xb00493,
-    0x400413,
-    0x500093,
-    0xc00393,
-    0xd00293,
-    0x600f93,
-    0x700f13,
-    0xe00e93,
-    0xf00e13,
-    0xc0687,
-    0xd12023,
-    0x12683,
-    0xe6f6b3,
-    0xd12023,
-    0xb8687,
-    0xd12223,
-    0x412683,
-    0xe6f6b3,
-    0xd12223,
-    0xb0687,
-    0xd12423,
-    0x812683,
-    0xe6f6b3,
-    0xd12423,
-    0xa8687,
-    0xd12623,
-    0xc12583,
-    0xb010c93,
-    0x279693,
-    0xe5f5b3,
-    0xb12623,
-    0xdc86b3,
-    0xf606a583,
-    0x12583,
-    0x412d83,
-    0xc12d03,
-    0x812c83,
-    0x26585b3,
-    0x31d8db3,
-    0x2ad0d33,
-    0x1b585b3,
-    0x30c8cb3,
-    0x1a585b3,
-    0x19585b3,
-    0xf6b6a023,
-    0xa0587,
-    0xb12023,
-    0x12583,
-    0xe5f5b3,
-    0xb12023,
-    0x98587,
-    0xb12223,
-    0x412583,
-    0xe5f5b3,
-    0xb12223,
-    0x90587,
-    0xb12423,
-    0x812583,
-    0xe5f5b3,
-    0xb12423,
-    0x48587,
-    0xb12623,
-    0xc12583,
-    0xe5f5b3,
-    0xb12623,
-    0xf886a583,
-    0x12583,
-    0x412d83,
-    0xc12d03,
-    0x812c83,
-    0x26585b3,
-    0x31d8db3,
-    0x2ad0d33,
-    0x1b585b3,
-    0x30c8cb3,
-    0x1a585b3,
-    0x19585b3,
-    0xf8b6a423,
-    0x40587,
-    0xb12023,
-    0x12583,
-    0xe5f5b3,
-    0xb12023,
-    0x8587,
-    0xb12223,
-    0x412583,
-    0xe5f5b3,
-    0xb12223,
-    0x38587,
-    0xb12423,
-    0x812583,
-    0xe5f5b3,
-    0xb12423,
-    0x28587,
-    0xb12623,
-    0xc12583,
-    0xe5f5b3,
-    0xb12623,
-    0xfb06a583,
-    0x12583,
-    0x412d83,
-    0xc12d03,
-    0x812c83,
-    0x26585b3,
-    0x31d8db3,
-    0x2ad0d33,
-    0x1b585b3,
-    0x30c8cb3,
-    0x1a585b3,
-    0x19585b3,
-    0xfab6a823,
-    0xf8587,
-    0xb12023,
-    0x12583,
-    0xe5f5b3,
-    0xb12023,
-    0xf0587,
-    0xb12223,
-    0x412583,
-    0xe5f5b3,
-    0xb12223,
-    0xe8587,
-    0xb12423,
-    0x812583,
-    0xe5f5b3,
-    0xb12423,
-    0xe0587,
-    0xb12623,
-    0xc12583,
-    0x178793,
-    0xe5f5b3,
-    0xb12623,
-    0xfd86a583,
-    0x12583,
-    0x412d83,
-    0xc12d03,
-    0x812c83,
-    0x26585b3,
-    0x31d8db3,
-    0x2ad0d33,
-    0x1b585b3,
-    0x30c8cb3,
-    0x1a585b3,
-    0x19585b3,
-    0xfcb6ac23,
-    0xdec7e0e3,
-    0x40c787b3,
-    0xdcc7ece3,
-    0x40c787b3,
-    0xfec7fae3,
-    0xdcdff06f
+0x10427137,
+0x104287b7,
+0x987a583,
+0x807aa83,
+0x847a703,
+0x887a383,
+0x8c7a283,
+0x907af83,
+0x947af03,
+0x4012023,
+0x4012223,
+0x4012423,
+0x4012623,
+0x4012823,
+0x4012a23,
+0x4012c23,
+0x4012e23,
+0x6012023,
+0x6012223,
+0x6012423,
+0x6012623,
+0x6012823,
+0x6012a23,
+0x6012c23,
+0x6012e23,
+0x8012023,
+0x8012223,
+0x8012423,
+0x8012623,
+0x8012823,
+0x8012a23,
+0x8012c23,
+0xe12c23,
+0x8012e23,
+0xa012023,
+0xa012223,
+0xa012423,
+0xa012623,
+0xa012823,
+0xa012a23,
+0xa012c23,
+0xa012e23,
+0xc012023,
+0xc012223,
+0xc012423,
+0xc012623,
+0xc012823,
+0xc012a23,
+0xc012c23,
+0x170e13,
+0x2ea8b33,
+0xc012e23,
+0x1100713,
+0xae7a023,
+0x12f00793,
+0xf12a23,
+0xf12823,
+0xf12623,
+0xf12423,
+0xf7b7,
+0x80000737,
+0xf078793,
+0xe0993,
+0xe0913,
+0xe0493,
+0xe0413,
+0x93,
+0x2012623,
+0x2012423,
+0x2012223,
+0x2012023,
+0x313,
+0x10404637,
+0xfff74713,
+0x100c13,
+0x10428eb7,
+0x6500a13,
+0x12f00b93,
+0xf12e23,
+0x62783,
+0x693,
+0x68687,
+0x2d12823,
+0x3012683,
+0xe6f6b3,
+0x2d12823,
+0xc0687,
+0x2d12a23,
+0x3412683,
+0xe6f6b3,
+0x2d12a23,
+0x800693,
+0x68687,
+0x2d12c23,
+0x3812683,
+0xe6f6b3,
+0x2d12c23,
+0x900693,
+0x68687,
+0x2d12e23,
+0x3c12683,
+0xe6f6b3,
+0x2d12e23,
+0x37c47e63,
+0x3540833,
+0x2012683,
+0x231513,
+0x140413,
+0xd80833,
+0x3012d03,
+0x3412683,
+0x3c12c83,
+0x3812883,
+0x27d0d33,
+0x25686b3,
+0x3ec8cb3,
+0xdd06b3,
+0x3f888b3,
+0x19686b3,
+0x11688b3,
+0xb1eaa23,
+0x411806b3,
+0x3606ca63,
+0xe010693,
+0xa686b3,
+0xf716a023,
+0x812683,
+0x1469863,
+0x20002423,
+0x12f00693,
+0xd12423,
+0x200693,
+0x68687,
+0x2d12823,
+0x3012683,
+0xe6f6b3,
+0x2d12823,
+0x300693,
+0x68687,
+0x2d12a23,
+0x3412683,
+0xe6f6b3,
+0x2d12a23,
+0xa00693,
+0x68687,
+0x2d12c23,
+0x3812683,
+0xe6f6b3,
+0x2d12c23,
+0xb00693,
+0x68687,
+0x2d12e23,
+0x3c12683,
+0xe6f6b3,
+0x2d12e23,
+0x29c4fc63,
+0x35488b3,
+0x2412683,
+0x148493,
+0xd888b3,
+0x3012d83,
+0x3412683,
+0x3c12d03,
+0x3812c83,
+0x27d8db3,
+0x25686b3,
+0x3ed0d33,
+0xdd86b3,
+0x3fc8cb3,
+0x1a686b3,
+0x1968cb3,
+0x419886b3,
+0x2806c063,
+0xe010693,
+0xa686b3,
+0xf996a423,
+0xc12683,
+0x1469863,
+0x21802423,
+0x12f00693,
+0xd12623,
+0x400693,
+0x68687,
+0x2d12823,
+0x3012683,
+0xe6f6b3,
+0x2d12823,
+0x500693,
+0x68687,
+0x2d12a23,
+0x3412683,
+0xe6f6b3,
+0x2d12a23,
+0xc00693,
+0x68687,
+0x2d12c23,
+0x3812683,
+0xe6f6b3,
+0x2d12c23,
+0xd00693,
+0x68687,
+0x2d12e23,
+0x3c12683,
+0xe6f6b3,
+0x2d12e23,
+0x1bc97e63,
+0x35908b3,
+0x2812683,
+0x190913,
+0xd888b3,
+0x3012d83,
+0x3412683,
+0x3c12d03,
+0x3812c83,
+0x27d8db3,
+0x25686b3,
+0x3ed0d33,
+0xdd86b3,
+0x3fc8cb3,
+0x1a686b3,
+0x1968cb3,
+0x419886b3,
+0x2406c063,
+0xe010693,
+0xa686b3,
+0xfb96a823,
+0x1012683,
+0x1469a63,
+0x200693,
+0x20d02423,
+0x12f00693,
+0xd12823,
+0x600693,
+0x68687,
+0x2d12823,
+0x3012683,
+0xe6f6b3,
+0x2d12823,
+0x700693,
+0x68687,
+0x2d12a23,
+0x3412683,
+0xe6f6b3,
+0x2d12a23,
+0xe00693,
+0x68687,
+0x2d12c23,
+0x3812683,
+0xe6f6b3,
+0x2d12c23,
+0xf00693,
+0x68687,
+0x2d12e23,
+0x3c12683,
+0xe6f6b3,
+0x2d12e23,
+0xdc9fe63,
+0x35988b3,
+0x2c12683,
+0x198993,
+0xd888b3,
+0x3012d83,
+0x3412683,
+0x3c12d03,
+0x3812c83,
+0x27d8db3,
+0x25686b3,
+0x3ed0d33,
+0xdd86b3,
+0x3fc8cb3,
+0x1a686b3,
+0x1968cb3,
+0x419886b3,
+0x1406c263,
+0xe010693,
+0xa68533,
+0x1412683,
+0xfd952c23,
+0x1469a63,
+0x300693,
+0x20d02423,
+0x12f00693,
+0xd12a23,
+0x1812503,
+0x62683,
+0x130313,
+0x2a37333,
+0x40f68533,
+0xf6f663,
+0xfff68693,
+0x40f68533,
+0xb57e63,
+0x62683,
+0xfff68893,
+0x40f68533,
+0xfef6f8e3,
+0x40f88533,
+0xfeb566e3,
+0x108093,
+0xa1ea223,
+0xb0ea823,
+0xacea783,
+0x1c12683,
+0xc8d790e3,
+0x104286b7,
+0x5500713,
+0xc06a783,
+0xe78463,
+0xce6a023,
+0x6f,
+0xff1ff06f,
+0xe010693,
+0xa686b3,
+0xfd86a883,
+0x11b08b3,
+0xf29ff06f,
+0xe010693,
+0xa686b3,
+0xfb06a883,
+0x11b08b3,
+0xe49ff06f,
+0xe010693,
+0xa686b3,
+0xf886a883,
+0x11b08b3,
+0xd6dff06f,
+0x231513,
+0xe010693,
+0xa686b3,
+0xf606a803,
+0x1680833,
+0xc89ff06f,
+0xe010693,
+0xa686b3,
+0xf916a423,
+0xc12683,
+0x3112223,
+0x100493,
+0xd97696e3,
+0x21802023,
+0x6500693,
+0xd12623,
+0xd7dff06f,
+0xe010693,
+0xa686b3,
+0xf706a023,
+0x812683,
+0x3012023,
+0x100413,
+0xc9769ce3,
+0x20002023,
+0x6500693,
+0xd12423,
+0xc89ff06f,
+0xe010693,
+0xa68533,
+0x1412683,
+0xfd152c23,
+0x3112623,
+0x100993,
+0xed7696e3,
+0x300693,
+0x20d02023,
+0x6500693,
+0xd12a23,
+0xeb9ff06f,
+0xe010693,
+0xa686b3,
+0xfb16a823,
+0x1012683,
+0x3112423,
+0x100913,
+0xdd7698e3,
+0x200693,
+0x20d02023,
+0x6500693,
+0xd12823,
+0xdbdff06f
 	  };
 
     uint32_t dspm_val[] = {
@@ -470,7 +719,21 @@ void setup_pmu(void){
 
     write_32b(PMC_STATUS_ADDR, 1);
     error_count += test_spm(ISPM_BASE_ADDR, program_size, program);
-    error_count += test_spm(DSPM_BASE_ADDR+0x80, dspm_len, dspm_val);
+    error_count += test_spm(DSPM_BASE_ADDR+0x1098, dspm_len, dspm_val);
+
+    int unsigned ai_budget    = 200;
+    int unsigned window_size  = 3;
+    int unsigned weight_r     = 7;
+    int unsigned weight_w     = 13;
+    int unsigned weight_r_mem = 12;
+    int unsigned weight_w_mem = 6;
+
+    test_spm(DSPM_BASE_ADDR + 0x1080, sizeof(ai_budget), ai_budget);  // Ai_Budget
+    test_spm(DSPM_BASE_ADDR + 0x1084, sizeof(window_size), window_size);  // WindowSize
+    test_spm(DSPM_BASE_ADDR + 0x1088, sizeof(weight_r), weight_r);  // WeightRead
+    test_spm(DSPM_BASE_ADDR + 0x108c, sizeof(weight_w), weight_w);  // WeightWrite
+    test_spm(DSPM_BASE_ADDR + 0x1090, sizeof(weight_r_mem), weight_r_mem);  // WeightRead (memory)
+    test_spm(DSPM_BASE_ADDR + 0x1094, sizeof(weight_w_mem), weight_w_mem);  // WeightWrite (memory)
 
     printf("SPMs and counters loaded. (%0d)\r\n", error_count);
 }
