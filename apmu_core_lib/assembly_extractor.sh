@@ -42,3 +42,19 @@ echo "Extraction completed. Output saved to $output_file"
 rm -f ../rv32-benchmarks-ibex/program.x
 
 (cd ../rv32-benchmarks-ibex && make fix replace assemble)
+
+
+input_file="../rv32-benchmarks-ibex/program.x"
+output_file="pmu_ispm.h"
+
+rm pmu_ispm.h
+
+echo -n "#define ISPM_DATA " >> "$output_file"
+
+
+# Use awk to add backslash at the end of each line except second-to-last
+awk 'NR > 1 { print line } { line = $0 " \\" } END { printf "%s", line }' "$input_file" >> "$output_file"
+
+sed -i '$ s/.$//' "$output_file"
+
+echo "Conversion complete. Output file saved as $output_file"
