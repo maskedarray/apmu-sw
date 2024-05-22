@@ -24,11 +24,19 @@ void throughput_measure() {
     int unsigned start_counter_1, end_counter_1;
     int unsigned start_counter_2, end_counter_2;
     int unsigned start_counter_3, end_counter_3;
+    int unsigned start_counter_4, end_counter_4;
+    int unsigned start_counter_5, end_counter_5;
+    int unsigned start_counter_6, end_counter_6;
+    int unsigned start_counter_7, end_counter_7;
+    int unsigned start_counter_8, end_counter_8;
+    int unsigned start_counter_9, end_counter_9;
+    int unsigned start_counter_10, end_counter_10;
+    int unsigned start_counter_11, end_counter_11;
+    int unsigned start_counter_12, end_counter_12;
+    int unsigned start_counter_13, end_counter_13;
+    int unsigned start_counter_14, end_counter_14;
+    int unsigned start_counter_15, end_counter_15;
 
-    int unsigned start_lat_counter_0, end_lat_counter_0;
-    int unsigned start_lat_counter_1, end_lat_counter_1;
-    int unsigned start_lat_counter_2, end_lat_counter_2;
-    int unsigned start_lat_counter_3, end_lat_counter_3;
 
     int counter_idx;
 
@@ -54,6 +62,55 @@ void throughput_measure() {
     counter_idx = 3;
     counter_read(start_counter_3, counter_idx);
     start_counter_3 = start_counter_3 & 0x7FFFFFFF;
+    // C4
+    counter_idx = 4;
+    counter_read(start_counter_4, counter_idx);
+    start_counter_4 = start_counter_4 & 0x7FFFFFFF;
+    // C5
+    counter_idx = 5;
+    counter_read(start_counter_5, counter_idx);
+    start_counter_5 = start_counter_5 & 0x7FFFFFFF;
+    // C6
+    counter_idx = 6;
+    counter_read(start_counter_6, counter_idx);
+    start_counter_6 = start_counter_6 & 0x7FFFFFFF;
+    // C7
+    counter_idx = 7;
+    counter_read(start_counter_7, counter_idx);
+    start_counter_7 = start_counter_7 & 0x7FFFFFFF;
+    // C8
+    counter_idx = 8;
+    counter_read(start_counter_8, counter_idx);
+    start_counter_8 = start_counter_8 & 0x7FFFFFFF;
+    // C9
+    counter_idx = 9;
+    counter_read(start_counter_9, counter_idx);
+    start_counter_9 = start_counter_9 & 0x7FFFFFFF;
+    // C10
+    counter_idx = 10;
+    counter_read(start_counter_10, counter_idx);
+    start_counter_10 = start_counter_10 & 0x7FFFFFFF;
+    // C11
+    counter_idx = 11;
+    counter_read(start_counter_11, counter_idx);
+    start_counter_11 = start_counter_11 & 0x7FFFFFFF;
+    // C12
+    counter_idx = 12;
+    counter_read(start_counter_12, counter_idx);
+    start_counter_12 = start_counter_12 & 0x7FFFFFFF;
+    // C13
+    counter_idx = 13;
+    counter_read(start_counter_13, counter_idx);
+    start_counter_13 = start_counter_13 & 0x7FFFFFFF;
+    // C14
+    counter_idx = 14;
+    counter_read(start_counter_14, counter_idx);
+    start_counter_14 = start_counter_14 & 0x7FFFFFFF;
+    // C15
+    counter_idx = 15;
+    counter_read(start_counter_15, counter_idx);
+    start_counter_15 = start_counter_15 & 0x7FFFFFFF;
+
 
     // // C4
     // counter_idx = 4;
@@ -101,6 +158,55 @@ void throughput_measure() {
     counter_idx = 3;
     counter_read(end_counter_3, counter_idx);
     end_counter_3 = end_counter_3 & 0x7FFFFFFF;
+    // C4
+    counter_idx = 4;
+    counter_read(end_counter_4, counter_idx);
+    end_counter_4 = end_counter_4 & 0x7FFFFFFF;
+    // C5
+    counter_idx = 5;
+    counter_read(end_counter_5, counter_idx);
+    end_counter_5 = end_counter_5 & 0x7FFFFFFF;
+    // C6
+    counter_idx = 6;
+    counter_read(end_counter_6, counter_idx);
+    end_counter_6 = end_counter_6 & 0x7FFFFFFF;
+    // C7
+    counter_idx = 7;
+    counter_read(end_counter_7, counter_idx);
+    end_counter_7 = end_counter_7 & 0x7FFFFFFF;
+    // C8
+    counter_idx = 8;
+    counter_read(end_counter_8, counter_idx);
+    end_counter_8 = end_counter_8 & 0x7FFFFFFF;
+    // C9
+    counter_idx = 9;
+    counter_read(end_counter_9, counter_idx);
+    end_counter_9 = end_counter_9 & 0x7FFFFFFF;
+    // C10
+    counter_idx = 10;
+    counter_read(end_counter_10, counter_idx);
+    end_counter_10 = end_counter_10 & 0x7FFFFFFF;
+    // C11
+    counter_idx = 11;
+    counter_read(end_counter_11, counter_idx);
+    end_counter_11 = end_counter_11 & 0x7FFFFFFF;
+    // C12
+    counter_idx = 12;
+    counter_read(end_counter_12, counter_idx);
+    end_counter_12 = end_counter_12 & 0x7FFFFFFF;
+    // C13
+    counter_idx = 13;
+    counter_read(end_counter_13, counter_idx);
+    end_counter_13 = end_counter_13 & 0x7FFFFFFF;
+    // C14
+    counter_idx = 14;
+    counter_read(end_counter_14, counter_idx);
+    end_counter_14 = end_counter_14 & 0x7FFFFFFF;
+    // C15
+    counter_idx = 15;
+    counter_read(end_counter_15, counter_idx);
+    end_counter_15 = end_counter_15 & 0x7FFFFFFF;
+
 
     // // C4
     // counter_idx = 4;
@@ -125,6 +231,18 @@ void throughput_measure() {
     write_32b(DSPM_BASE_ADDR+0x124, end_counter_1-start_counter_1);
     write_32b(DSPM_BASE_ADDR+0x128, end_counter_2-start_counter_2);
     write_32b(DSPM_BASE_ADDR+0x12c, end_counter_3-start_counter_3);
+    write_32b(DSPM_BASE_ADDR+0x130, end_counter_4-start_counter_4);
+    write_32b(DSPM_BASE_ADDR+0x134, end_counter_5-start_counter_5);
+    write_32b(DSPM_BASE_ADDR+0x138, end_counter_6-start_counter_6);
+    write_32b(DSPM_BASE_ADDR+0x13c, end_counter_7-start_counter_7);
+    write_32b(DSPM_BASE_ADDR+0x140, end_counter_8-start_counter_8);
+    write_32b(DSPM_BASE_ADDR+0x144, end_counter_9-start_counter_9);
+    write_32b(DSPM_BASE_ADDR+0x148, end_counter_10-start_counter_10);
+    write_32b(DSPM_BASE_ADDR+0x14c, end_counter_11-start_counter_11);
+    write_32b(DSPM_BASE_ADDR+0x150, end_counter_12-start_counter_12);
+    write_32b(DSPM_BASE_ADDR+0x154, end_counter_13-start_counter_13);
+    write_32b(DSPM_BASE_ADDR+0x158, end_counter_14-start_counter_14);
+    write_32b(DSPM_BASE_ADDR+0x15c, end_counter_15-start_counter_15);
 
     // write_32b(DSPM_BASE_ADDR+0x130, end_lat_counter_0-start_lat_counter_0);
     // write_32b(DSPM_BASE_ADDR+0x134, end_lat_counter_1-start_lat_counter_1);
