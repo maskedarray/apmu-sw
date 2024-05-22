@@ -8,12 +8,20 @@
 
 
 // #define READ_HIT
-// #define READ_MISS
+#define READ_MISS
 // #define READ_MISS_WB
 
 // #define WRITE_HIT
 // #define WRITE_MISS
-#define WRITE_MISS_WB
+// #define WRITE_MISS_WB
+
+// #define INTF_READ_HIT
+// #define INTF_READ_MISS
+// #define INTF_READ_MISS_WB
+
+// #define INTF_WRITE_HIT
+// #define INTF_WRITE_MISS
+#define INTF_WRITE_MISS_WB
 
 #define STRIDE     8    // 8 x 8 = 64 bytes
 
@@ -94,7 +102,7 @@ void print_init(){
 static inline cpu_barrier_sync();
 void setup_pmu(void);
 static inline traverse_array(volatile uint64_t* array_addr, uint32_t dummy_var, int start_index, int end_index, int reps);
-
+static inline traverse_array_intf(volatile uint64_t* array_addr, uint32_t dummy_var, int start_index, int end_index, int reps);
 // *********************************************************************
 // Main Function
 // *********************************************************************
@@ -108,6 +116,7 @@ int main(int argc, char const *argv[]) {
 
   volatile uint64_t *array = (uint64_t*)(uint64_t)(0x83000000 + mhartid * 0x01000000);
   uint32_t a_len2;       // 512 KB
+  uint32_t a_len2_intf;       // 512 KB
   uint32_t var;
 
   #if defined (READ_HIT) || defined (WRITE_HIT) || defined (READ_MISS_WB) || defined (WRITE_MISS)
@@ -115,6 +124,13 @@ int main(int argc, char const *argv[]) {
     a_len2 = 65536;       // 512 KB
   #elif defined (READ_MISS) || defined (WRITE_MISS_WB)
     a_len2 = 262144;        // 2MB
+  #endif
+
+  #if defined (INTF_READ_HIT) || defined (INTF_WRITE_HIT) || defined (INTF_READ_MISS_WB) || defined (INTF_WRITE_MISS)
+    // a_len2 = 61440;       // 480 KB
+    a_len2_intf = 65536;       // 512 KB
+  #elif defined (INTF_READ_MISS) || defined (INTF_WRITE_MISS_WB)
+    a_len2_intf = 262144;        // 2MB
   #endif
 
   // *******************************************************************
@@ -172,7 +188,7 @@ int main(int argc, char const *argv[]) {
     }
 
     
-    // cpu_barrier_sync(mhartid);
+    cpu_barrier_sync(mhartid);
 
     // Start the APMU core.
     #if !defined(READ_MISS_WB) && !defined(WRITE_MISS)
@@ -211,19 +227,18 @@ int main(int argc, char const *argv[]) {
   // Core 1-3
   // *******************************************************************
   } else {
-    while(1){};
     // **************************************************************
     // Prime the cache
     // **************************************************************
-    #if defined (READ_HIT) || defined (WRITE_HIT) || defined (READ_MISS_WB) || defined (WRITE_MISS)
-      for (int a_idx = 0; a_idx < a_len2; a_idx+=STRIDE) {
-        #if defined (READ_HIT) || defined (WRITE_MISS)
+    #if defined (INTF_READ_HIT) || defined (INTF_WRITE_HIT) || defined (INTF_READ_MISS_WB) || defined (INTF_WRITE_MISS)
+      for (int a_idx = 0; a_idx < a_len2_intf; a_idx+=STRIDE) {
+        #if defined (INTF_READ_HIT) || defined (INTF_WRITE_MISS)
           asm volatile (
             "ld   %0, 0(%1)\n"
             : "=r"(var)
             : "r"(array - a_idx)
           );
-        #elif defined(WRITE_HIT) || defined (READ_MISS_WB)
+        #elif defined(INTF_WRITE_HIT) || defined (INTF_READ_MISS_WB)
           asm volatile (
             "sd   %0, 0(%1)\n"
             :: "r"(var),
@@ -244,11 +259,11 @@ int main(int argc, char const *argv[]) {
         // Now traverse from 512KB to 1024KB and perform:
         // For READ_MISS_WB perform reads
         // Fore WRITE_MISS perform write
-        traverse_array(array, var, a_len2, a_len2+65536, 1);  
+        traverse_array(array, var, a_len2_intf, a_len2_intf+65536, 1);  
         // traverse_array(array, var, a_len2+21845, a_len2+65536, 1);  
 
       #else
-          traverse_array(array, var, 0, a_len2, 100);
+          traverse_array_intf(array, var, 0, a_len2_intf, 100);
     #endif
     }
   }
@@ -294,6 +309,26 @@ static inline traverse_array(volatile uint64_t* array_addr, uint32_t dummy_var, 
           : "r"(array_addr - a_idx)
         );
       #elif defined(WRITE_HIT) || defined (WRITE_MISS_WB) || defined (WRITE_MISS)
+        asm volatile (
+          "sd   %0, 0(%1)\n"
+          :: "r"(dummy_var),
+            "r"(array_addr - a_idx)
+        );
+      #endif
+    }
+  }
+}
+
+static inline traverse_array_intf(volatile uint64_t* array_addr, uint32_t dummy_var, int start_index, int end_index, int reps){
+  for (int j=0; j<reps; j++){
+    for (int a_idx = start_index; a_idx < end_index; a_idx+=STRIDE) {
+      #if defined(INTF_READ_HIT) || defined (INTF_READ_MISS) || defined (INTF_READ_MISS_WB)
+        asm volatile (
+          "ld   %0, 0(%1)\n"
+          : "=r"(dummy_var)
+          : "r"(array_addr - a_idx)
+        );
+      #elif defined(INTF_WRITE_HIT) || defined (INTF_WRITE_MISS_WB) || defined (INTF_WRITE_MISS)
         asm volatile (
           "sd   %0, 0(%1)\n"
           :: "r"(dummy_var),
