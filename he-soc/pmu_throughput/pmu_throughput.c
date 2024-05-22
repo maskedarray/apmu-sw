@@ -12,12 +12,12 @@
 // #define READ_MISS_WB
 
 // #define WRITE_HIT
-#define WRITE_MISS
-// #define WRITE_MISS_WB
+// #define WRITE_MISS
+#define WRITE_MISS_WB
 
 #define STRIDE     8    // 8 x 8 = 64 bytes
 
-#define DELAY 85501
+#define DELAY 10000000
 
 #define write_32b(addr, val_)  (*(volatile uint32_t *)(long)(addr) = val_)
 
@@ -172,7 +172,7 @@ int main(int argc, char const *argv[]) {
     }
 
     
-    cpu_barrier_sync(mhartid);
+    // cpu_barrier_sync(mhartid);
 
     // Start the APMU core.
     #if !defined(READ_MISS_WB) && !defined(WRITE_MISS)
@@ -211,7 +211,7 @@ int main(int argc, char const *argv[]) {
   // Core 1-3
   // *******************************************************************
   } else {
- 
+    while(1){};
     // **************************************************************
     // Prime the cache
     // **************************************************************
