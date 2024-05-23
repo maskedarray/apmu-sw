@@ -1,0 +1,6 @@
+
+sudo kill -9 $(│ 1138, 17, 1154, 1153, 1149, 5, 1149, 1149, 1149, 5, 1149, 1149, 1149, 5, 1149, 1148
+pidof riscv64-unknown-elf-gdb); sudo kill -9 $(pidof openocd);xsdb -eval "connect -url TCP:loca│ 1124, 644, 1143, 0, 903, 898, 903, 0, 904, 899, 904, 0, 903, 900, 903, 0
+lhost:3121;targets -set -nocase -filter {name =~ \"*xcvu9p*\"}; fpga -f $ALSAQR_BITSTREAM/Mar18│Output files are located in: /tmp/tmp.dAUPsf7XFT
+/alsaqr_xilinx.bit"; (sudo openocd -f $ALSAQR_CFG/zcu102-multicore.cfg &); sleep 2; (riscv64-un│a26rahma@RP10:~/work/alsaqr/final_testing_mohamed/mempol$ ^C
+known-elf-gdb -x gdb_script &)
